@@ -1,4 +1,4 @@
-export const getProducts = () =>
+export const getAllProducts = () =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
       resolve({
@@ -13,7 +13,7 @@ export const getProducts = () =>
     }, 2000);
   });
 
-export const getProductDetail = (id) =>
+export const getOneProductDetails = (id) =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
       resolve({

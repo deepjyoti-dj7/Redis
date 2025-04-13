@@ -1,12 +1,17 @@
 import express from "express";
-import { getProductDetail, getProducts } from "./api/products.js";
+import { getOneProductDetails, getAllProducts } from "./api/products.js";
 import Redis from "ioredis";
 import "dotenv/config";
+import {
+  getAllProductsCachedData,
+  getOneProductDetailsCachedData,
+  invalidateProductCache,
+} from "./middleware/redis.js";
 
 const PORT = 3000;
 const app = express();
 
-const redis = new Redis({
+export const redis = new Redis({
   host: process.env.REDIS_HOST,
   port: process.env.REDIS_PORT,
   password: process.env.REDIS_PASSWORD,
@@ -19,44 +24,37 @@ app.get("/", (req, res) => {
   res.send("Hello THERE!!!");
 });
 
-app.get("/products", async (req, res) => {
-  let products = await redis.get("products");
-
-  if (products) {
-    console.log("Getting all products from cache");
-    return res.json({
-      products: JSON.parse(products),
-    });
-  }
+app.get("/products", getAllProductsCachedData("products"), async (req, res) => {
   console.log("Getting all products from DB");
 
-  products = await getProducts();
-  await redis.setex("products", 30, JSON.stringify(products.products));
+  const products = await getAllProducts();
+  await redis.set("products", JSON.stringify(products.products));
 
   res.json({
     products,
   });
 });
 
-app.get("/product/:id", async (req, res) => {
+app.get("/product/:id", getOneProductDetailsCachedData(), async (req, res) => {
+  console.log("Getting one product details from DB");
+
   const id = req.params.id;
-
   const key = `product:${id}`;
-  let product = await redis.get(key);
 
-  if (product) {
-    console.log("Getting product from cache");
-    return res.json({
-      product: JSON.parse(product),
-    });
-  }
-  console.log("Getting product from DB");
+  const product = await getOneProductDetails(id);
 
-  product = await getProductDetail(id);
-  await redis.setex(key, 30, JSON.stringify(product));
+  await redis.set(key, JSON.stringify(product));
 
   res.json({
     product,
+  });
+});
+
+app.get("/order/:id", invalidateProductCache(), async (req, res) => {
+  const { id } = req.params;
+
+  return res.json({
+    message: `Order placed successfully, product id:${id} is ordered`,
   });
 });
 
