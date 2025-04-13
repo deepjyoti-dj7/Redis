@@ -1,5 +1,5 @@
 import express from "express";
-import { getProducts } from "./api/products.js";
+import { getProductDetail, getProducts } from "./api/products.js";
 import Redis from "ioredis";
 import "dotenv/config";
 
@@ -20,21 +20,43 @@ app.get("/", (req, res) => {
 });
 
 app.get("/products", async (req, res) => {
-  const isExists = await redis.exists("products");
-  if (isExists) {
-    console.log("Getting from cache");
-    const products = await redis.get("products");
+  let products = await redis.get("products");
+
+  if (products) {
+    console.log("Getting all products from cache");
     return res.json({
       products: JSON.parse(products),
     });
   }
-  console.log("Getting from DB");
+  console.log("Getting all products from DB");
 
-  const products = await getProducts();
-  await redis.set("products", JSON.stringify(products.products));
+  products = await getProducts();
+  await redis.setex("products", 30, JSON.stringify(products.products));
 
   res.json({
     products,
+  });
+});
+
+app.get("/product/:id", async (req, res) => {
+  const id = req.params.id;
+
+  const key = `product:${id}`;
+  let product = await redis.get(key);
+
+  if (product) {
+    console.log("Getting product from cache");
+    return res.json({
+      product: JSON.parse(product),
+    });
+  }
+  console.log("Getting product from DB");
+
+  product = await getProductDetail(id);
+  await redis.setex(key, 30, JSON.stringify(product));
+
+  res.json({
+    product,
   });
 });
 
