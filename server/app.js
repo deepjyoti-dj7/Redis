@@ -6,6 +6,7 @@ import {
   getAllProductsCachedData,
   getOneProductDetailsCachedData,
   invalidateProductCache,
+  rateLimiter,
 } from "./middleware/redis.js";
 
 const PORT = 3000;
@@ -20,8 +21,8 @@ redis.on("connect", () => {
   console.log("Redis connected");
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello THERE!!!");
+app.get("/", rateLimiter(10, 120), async (req, res) => {
+  res.send(`Hello THERE!!!`);
 });
 
 app.get("/products", getAllProductsCachedData("products"), async (req, res) => {

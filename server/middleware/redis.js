@@ -44,3 +44,25 @@ export const invalidateProductCache = () => async (req, res, next) => {
 
   next();
 };
+
+export const rateLimiter = (limit, timer) => async (req, res, next) => {
+  const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const key = `${clientIp}:request_count`;
+  const requestCount = await redis.incr(key);
+
+  if (requestCount === 1) {
+    await redis.expire(key, timer);
+  }
+
+  const remainingTime = await redis.ttl(key);
+
+  if (requestCount > limit) {
+    return res
+      .status(429)
+      .send(
+        `Too many requests, please try again after ${remainingTime} seconds`
+      );
+  }
+
+  next();
+};
