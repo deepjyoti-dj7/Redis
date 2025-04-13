@@ -1,15 +1,26 @@
 import express from "express";
 import { getProducts } from "./api/products.js";
+import Redis from "ioredis";
+import "dotenv/config";
 
-const app = express();
 const PORT = 3000;
+const app = express();
+
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD,
+});
+redis.on("connect", () => {
+  console.log("Redis connected");
+});
 
 app.get("/", (req, res) => {
-  console.log("Hello THERE!!!");
+  res.send("Hello THERE!!!");
 });
 
 app.get("/products", async (req, res) => {
-  const products = await getProducts;
+  const products = await getProducts();
 
   res.json({
     products,
