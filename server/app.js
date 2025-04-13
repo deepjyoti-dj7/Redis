@@ -20,7 +20,18 @@ app.get("/", (req, res) => {
 });
 
 app.get("/products", async (req, res) => {
+  const isExists = await redis.exists("products");
+  if (isExists) {
+    console.log("Getting from cache");
+    const products = await redis.get("products");
+    return res.json({
+      products: JSON.parse(products),
+    });
+  }
+  console.log("Getting from DB");
+
   const products = await getProducts();
+  await redis.set("products", JSON.stringify(products.products));
 
   res.json({
     products,

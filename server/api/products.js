@@ -2,7 +2,7 @@ export const getProducts = () =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
       resolve({
-        poducts: [
+        products: [
           {
             id: 1,
             name: "Product 1",
